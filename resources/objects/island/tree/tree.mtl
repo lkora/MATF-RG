@@ -1,0 +1,51 @@
+# Blender MTL File: 'island.blend'
+# Material Count: 4
+
+newmtl Foliage
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.130036 0.638275 0.106709
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Ka tree_diffuse.png
+map_Kd tree_diffuse.png
+
+newmtl Foliage_acc
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.044183 0.410941 0.053855
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Ka tree_diffuse.png
+map_Kd tree_diffuse.png
+
+newmtl Wood
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.147303 0.047122 0.013266
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Ka tree_diffuse.png
+map_Kd tree_diffuse.png
+
+newmtl Wood_acc
+Ns 225.000000
+Ka 1.000000 1.000000 1.000000
+Kd 0.044455 0.011831 0.000720
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.450000
+d 1.000000
+illum 2
+map_Ka tree_diffuse.png
+map_Kd tree_diffuse.png
+

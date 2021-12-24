@@ -107,6 +107,7 @@ private:
 
         glBindVertexArray(0);
     }
+
 };
 
 #endif //PROJECT_BASE_MESH_H

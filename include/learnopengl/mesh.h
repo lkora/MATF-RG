@@ -135,5 +135,6 @@ private:
 
         glBindVertexArray(0);
     }
+
 };
 #endif
