@@ -193,7 +193,7 @@ int main() {
     snailModel.SetShaderTextureNamePrefix("material.");
     Model treeModel("resources/objects/island/tree/tree.obj");
     treeModel.SetShaderTextureNamePrefix("material.");
-    Model cloudModel("resources/objects/island/cloud/cloud.obj");
+    Model cloudModel("resources/objects/cloud/cloud.obj");
     cloudModel.SetShaderTextureNamePrefix("material.");
 
     float skyboxVertices[] = {

@@ -24,7 +24,7 @@ Ke 0.000000 0.000000 0.000000
 Ni 1.000000
 d 1.000000
 illum 2
-map_Kd old_water_diffuse.png
-map Ka old_water_diffuse.png
+map_Kd water_diffuse.png
+map Ka water_diffuse.png
 map_Bump water_normal.png
 
