@@ -1,5 +1,7 @@
 #version 330 core
-out vec4 FragColor;
+
+layout (location = 0) out vec4 FragColor;
+layout (location = 1) out vec4 BrightColor;
 
 struct DirLight {
     vec3 direction;
@@ -51,9 +53,12 @@ in vec3 FragPos;
 
 uniform DirLight dirLight;
 uniform PointLight pointLights[NR_POINT_LIGHTS];
+
 uniform Material material;
 uniform vec3 viewPosition;
 uniform samplerCube skybox;
+uniform bool blinn;
+
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir);
 vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir);
@@ -68,6 +73,13 @@ void main()
             result += CalcPointLight(pointLights[i], normal, FragPos, viewDir);
 
     FragColor = vec4(result, 1.0);
+
+    float brightness = dot(FragColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+    if(brightness > 1.0)
+        BrightColor = vec4(FragColor.rgb, 1.0);
+    else
+        BrightColor = vec4(0.0, 0.0, 0.0, 1.0);
+
 }
 
 // calculates the color when using a directional light.
@@ -93,8 +105,14 @@ vec3 CalcPointLight(PointLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
     // diffuse shading
     float diff = max(dot(normal, lightDir), 0.0);
     // specular shading
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    float spec = 0.0;
+    if(blinn){
+        vec3 halfwayDir = normalize(lightDir + viewDir);
+        spec = pow(max(dot(normal, halfwayDir), 0.0), material.shininess);
+    } else {
+        vec3 reflectDir = reflect(-lightDir, normal);
+        spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    }
     // attenuation
     float distance = length(light.position - fragPos);
     float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));
