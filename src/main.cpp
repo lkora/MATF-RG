@@ -381,13 +381,22 @@ int main() {
 
     // Load skybox textures
     vector<std::string> faces{
-            FileSystem::getPath("resources/textures/skybox/right.jpg"),
-            FileSystem::getPath("resources/textures/skybox/left.jpg"),
-            FileSystem::getPath("resources/textures/skybox/top.jpg"),
-            FileSystem::getPath("resources/textures/skybox/bottom.jpg"),
-            FileSystem::getPath("resources/textures/skybox/front.jpg"),
-            FileSystem::getPath("resources/textures/skybox/back.jpg")
+            FileSystem::getPath("resources/textures/skybox/space/right.png"),
+            FileSystem::getPath("resources/textures/skybox/space/left.png"),
+            FileSystem::getPath("resources/textures/skybox/space/top.png"),
+            FileSystem::getPath("resources/textures/skybox/space/bottom.png"),
+            FileSystem::getPath("resources/textures/skybox/space/front.png"),
+            FileSystem::getPath("resources/textures/skybox/space/back.png")
     };
+    // OLD
+//    vector<std::string> faces{
+//            FileSystem::getPath("resources/textures/skybox/sky/right.jpg"),
+//            FileSystem::getPath("resources/textures/skybox/sky/left.jpg"),
+//            FileSystem::getPath("resources/textures/skybox/sky/top.jpg"),
+//            FileSystem::getPath("resources/textures/skybox/sky/bottom.jpg"),
+//            FileSystem::getPath("resources/textures/skybox/sky/front.jpg"),
+//            FileSystem::getPath("resources/textures/skybox/sky/back.jpg")
+//    };
     unsigned int cubemapTexture = loadCubemap(faces);
     {
 //    // ------- configure (floating point) framebuffers --------
@@ -573,6 +582,22 @@ int main() {
         // ------
         glClearColor(programState->clearColor.r, programState->clearColor.g, programState->clearColor.b, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
+                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
+
+        // Skybox shader set
+        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+        skyboxShader.use();
+        glm::mat4 view = glm::mat4(glm::mat3(programState->camera.GetViewMatrix())); // remove translation from the view matrix
+        skyboxShader.setMat4("view", view);
+        skyboxShader.setMat4("projection", projection);
+        // Draw skybox
+        glBindVertexArray(skyboxVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+        glDepthFunc(GL_LESS); // set depth function back to default
 
         // don't forget to enable shader before setting uniforms
         ourShader.use();
@@ -582,20 +607,14 @@ int main() {
         // view/projection transformations
         ourShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
         setLights(ourShader, pointLightPositions);
-
-        glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
-                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = programState->camera.GetViewMatrix();
+        view = programState->camera.GetViewMatrix();
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
 
-        // Draw island
+        // ------------- Objects -------------
         drawIsland(ourShader, islandModel);
-        // Draw snail
         drawSnail(ourShader, snailModel);
-        // Draw trees
         drawTrees(ourShader, treeModel);
-
         // Set cloud shader
         instanceShader.use();
         instanceShader.setMat4("projection", projection);
@@ -609,20 +628,8 @@ int main() {
             glDrawElementsInstanced(GL_TRIANGLES, cloudModel.meshes[i].indices.size(), GL_UNSIGNED_INT, 0, amount);
             glBindVertexArray(0);
         }
+        // -------------------------------------
 
-        // Skybox shader set
-        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
-        skyboxShader.use();
-        view = glm::mat4(glm::mat3(programState->camera.GetViewMatrix())); // remove translation from the view matrix
-        skyboxShader.setMat4("view", view);
-        skyboxShader.setMat4("projection", projection);
-        // Draw skybox
-        glBindVertexArray(skyboxVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, cubemapTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
-        glDepthFunc(GL_LESS); // set depth function back to default
 
         // Reset wireframe drawing so that it doesn't try to draw quads
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
@@ -640,19 +647,6 @@ int main() {
                 first_iteration = false;
         }
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-        {
-//        // Bind back to HDR framebuffer
-//        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-//        // render floating point color buffer to 2D quad and tonemap HDR colors to default framebuffer's (clamped) color range
-//        // --------------------------------------------------------------------------------------------------------------------------
-//        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//        hdrShader.use();
-//        glActiveTexture(GL_TEXTURE0);
-//        glBindTexture(GL_TEXTURE_2D, colorBuffer);
-//        hdrShader.setInt("hdr", programState->hdr);
-//        hdrShader.setFloat("exposure", programState->hdrExposure);
-        }
 
         // Bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
         // glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -673,6 +667,7 @@ int main() {
         glBindTexture(GL_TEXTURE_2D, colorBuffers[0]);
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, pingpongColorbuffers[!horizontal]);
+
         renderQuad();
         //glBindVertexArray(quadVAO);
         //glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
@@ -852,8 +847,7 @@ void DrawImGui(ProgramState *programState) {
     {
         static float f = 0.0f;
         ImGui::Begin("Setup window");
-        ImGui::Text("Model");
-        ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
+        ImGui::Text("Base");
         ImGui::ColorEdit3("Background clear color", (float *) &programState->clearColor);
         ImGui::DragFloat3("Island position", (float*)&programState->islandPosition);
         ImGui::DragFloat("Island scale", &programState->islandScale, 0.05, 0.1, 4.0);
@@ -902,16 +896,25 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
             programState->CameraMouseMovementUpdateEnabled = false;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
         } else {
+            programState->CameraMouseMovementUpdateEnabled = true;
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
         }
     }
-    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS) {
+    if (glfwGetKey(window, GLFW_KEY_L) == GLFW_PRESS) {
         programState->blinnLighting = !programState->blinnLighting;
         std::cout << "Blinn - " << (programState->blinnLighting ? "ON" : "OFF") << '\n';
     }
     if (glfwGetKey(window, GLFW_KEY_H) == GLFW_PRESS){
         programState->hdr = !programState->hdr;
         std::cout << "HDR - " << (programState->hdr  ? "ON" : "OFF") << '\n';
+    }
+    if (glfwGetKey(window, GLFW_KEY_B) == GLFW_PRESS){
+        programState->bloom = !programState->bloom;
+        std::cout << "Bloom - " << (programState->bloom  ? "ON" : "OFF") << '\n';
+    }
+    if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS){
+        programState->CameraMouseMovementUpdateEnabled = !programState->CameraMouseMovementUpdateEnabled;
+        std::cout << "Camera lock - " << (programState->CameraMouseMovementUpdateEnabled ? "Disabled" : "Enabled");
     }
 }
 
@@ -926,8 +929,9 @@ unsigned int loadCubemap(vector<std::string> faces) {
         unsigned char *data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
         if (data)
         {
+            // Load RGBA instead of RGB for .png cubemap textures
             glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-                         0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+                         0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data
             );
             stbi_image_free(data);
         }
