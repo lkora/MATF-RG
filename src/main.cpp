@@ -61,6 +61,15 @@ struct ProgramState {
     glm::vec3 clearColor = glm::vec3(0);
     bool ImGuiEnabled = false;
     Camera camera;
+    glm::vec3 dirLightDirection = glm::vec3(-0.2f, -1.0f, -0.3f);
+    glm::vec3 dirLightAmbient = glm::vec3(0.2f, 0.2f, 0.2f);
+    glm::vec3 dirLightDiffuse = glm::vec3(0.5f, 0.5f, 0.5f);
+    glm::vec3 dirLightSpecular = glm::vec3(1.0f, 1.0f, 1.0f);
+    glm::vec3 pointLightAmbient = glm::vec3(0.05f, 0.05f, 0.05f);
+    glm::vec3 pointLightDiffuse = glm::vec3(0.94f, 0.98f, 0.78f);
+    glm::vec3 pointLightSpecular = glm::vec3(0.94f, 0.98f, 0.78f);
+    bool cameraDebug = true;
+    bool lightsDebug = false;
     int screenWidth;
     int screenHeight;
     bool CameraMouseMovementUpdateEnabled = true;
@@ -88,6 +97,8 @@ void ProgramState::SaveToFile(std::string filename) {
     out << clearColor.r << '\n'
         << clearColor.g << '\n'
             << clearColor.b << '\n'
+            << cameraDebug << '\n'
+            << lightsDebug << '\n'
             << ImGuiEnabled << '\n'
             << camera.Position.x << '\n'
             << camera.Position.y << '\n'
@@ -103,7 +114,14 @@ void ProgramState::SaveToFile(std::string filename) {
             << hdrGamma << '\n'
             << bloom << '\n'
             << effectSelected << '\n'
-            << wireframe << '\n';
+            << wireframe << '\n'
+            << dirLightDirection.x << '\n' << dirLightDirection.y << '\n' << dirLightDirection.z << '\n'
+            << dirLightAmbient.x << '\n' << dirLightAmbient.y << '\n' << dirLightAmbient.z << '\n'
+            << dirLightDiffuse.x << '\n' << dirLightDiffuse.y << '\n' << dirLightDiffuse.z << '\n'
+            << dirLightSpecular.x << '\n' << dirLightSpecular.y << '\n' << dirLightSpecular.z << '\n'
+            << pointLightAmbient.x << '\n' << pointLightAmbient.y << '\n' << pointLightAmbient.z << '\n'
+            << pointLightDiffuse.x << '\n' << pointLightDiffuse.y << '\n' << pointLightDiffuse.z << '\n'
+            << pointLightSpecular.x << '\n' << pointLightSpecular.y << '\n' << pointLightSpecular.z;
 }
 void ProgramState::LoadFromFile(std::string filename) {
     std::ifstream in(filename);
@@ -111,6 +129,8 @@ void ProgramState::LoadFromFile(std::string filename) {
         in >> clearColor.r
            >> clearColor.g
                 >> clearColor.b
+                >> cameraDebug
+                >> lightsDebug
                 >> ImGuiEnabled
                 >> camera.Position.x
                 >> camera.Position.y
@@ -126,7 +146,15 @@ void ProgramState::LoadFromFile(std::string filename) {
                 >> hdrGamma
                 >> bloom
                 >> effectSelected
-                >> wireframe;
+                >> wireframe
+                >> dirLightDirection.x >> dirLightDirection.y >> dirLightDirection.z
+                >> dirLightAmbient.x >> dirLightAmbient.y >> dirLightAmbient.z
+                >> dirLightDiffuse.x >> dirLightDiffuse.y >> dirLightDiffuse.z
+                >> dirLightSpecular.x >> dirLightSpecular.y >> dirLightSpecular.z
+                >> pointLightAmbient.x >> pointLightAmbient.y >> pointLightAmbient.z
+                >> pointLightDiffuse.x >> pointLightDiffuse.y >> pointLightDiffuse.z
+                >> pointLightSpecular.x >> pointLightSpecular.y >> pointLightSpecular.z;
+
     }
 }
 void ProgramState::UpdateRatio(int width, int height){
@@ -210,7 +238,6 @@ int main() {
     Shader ourShader("resources/shaders/model_lighting_phong.vs", "resources/shaders/model_lighting_phong.fs");
     Shader skyboxShader("resources/shaders/skyboxShader.vs", "resources/shaders/skyboxShader.fs");
     Shader instanceShader("resources/shaders/instanceShader.vs", "resources/shaders/instanceShader.fs");
-    Shader hdrShader("resources/shaders/hdrShader.vs", "resources/shaders/hdrShader.fs");
     Shader blurShader("resources/shaders/blur.vs", "resources/shaders/blur.fs");
     //    ourShader.setInt("numPointLights", 4);
 
@@ -388,51 +415,8 @@ int main() {
             FileSystem::getPath("resources/textures/skybox/space/front.png"),
             FileSystem::getPath("resources/textures/skybox/space/back.png")
     };
-    // OLD
-//    vector<std::string> faces{
-//            FileSystem::getPath("resources/textures/skybox/sky/right.jpg"),
-//            FileSystem::getPath("resources/textures/skybox/sky/left.jpg"),
-//            FileSystem::getPath("resources/textures/skybox/sky/top.jpg"),
-//            FileSystem::getPath("resources/textures/skybox/sky/bottom.jpg"),
-//            FileSystem::getPath("resources/textures/skybox/sky/front.jpg"),
-//            FileSystem::getPath("resources/textures/skybox/sky/back.jpg")
-//    };
+
     unsigned int cubemapTexture = loadCubemap(faces);
-    {
-//    // ------- configure (floating point) framebuffers --------
-//    // --------------------------------------------------------
-//    unsigned int hdrFBO;
-//    glGenFramebuffers(1, &hdrFBO);
-//    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
-//    // create 2 floating point color buffers (1 for normal rendering, other for brightness threshold values)
-//    unsigned int colorBuffers[2];
-//    glGenTextures(2, colorBuffers);
-//    for (unsigned int i = 0; i < 2; i++)
-//    {
-//        glBindTexture(GL_TEXTURE_2D, colorBuffers[i]);
-//        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);  // we clamp to the edge as the blur filter would otherwise sample repeated texture values!
-//        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-//        // attach texture to framebuffer
-//        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorBuffers[i], 0);
-//    }
-//
-//    // create and attach depth buffer (renderbuffer)
-//    unsigned int rboDepth;
-//    glGenRenderbuffers(1, &rboDepth);
-//    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-//    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
-//    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-//    // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
-//    unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-//    glDrawBuffers(2, attachments);
-//    // finally check if framebuffer is complete
-//    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-//        std::cout << "ERROR::FRAMEBUFFER:: RBODepth Framebuffer not complete!" << std::endl;
-//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
 
     // framebuffer configuration
     // -------------------------
@@ -453,17 +437,8 @@ int main() {
         // attach texture to framebuffer
         glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0 + i, GL_TEXTURE_2D, colorBuffers[i], 0);
     }
-//    // create a color attachment texture
-//    unsigned int textureColorbuffer;
-//    glGenTextures(1, &textureColorbuffer);
-//    glBindTexture(GL_TEXTURE_2D, textureColorbuffer);
-//    //glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorbuffer, 0);
 
-    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+     // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
     unsigned int rbo;
     glGenRenderbuffers(1, &rbo);
     glBindRenderbuffer(GL_RENDERBUFFER, rbo);
@@ -498,55 +473,12 @@ int main() {
     // --------------------------------------------------------
 
 
-    {
-        // floating point framebuffer configuration
-        // ------------------------------------
-//    unsigned int hdrFBO;
-//    glGenFramebuffers(1, &hdrFBO);
-//    // create floating point color buffer
-//    unsigned int colorBuffer;
-//    glGenTextures(1, &colorBuffer);
-//    glBindTexture(GL_TEXTURE_2D, colorBuffer);
-//    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGBA, GL_FLOAT, NULL);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-//    // create depth buffer (renderbuffer)
-//    unsigned int rboDepth;
-//    glGenRenderbuffers(1, &rboDepth);
-//    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-//    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
-//    // attach buffers
-//    glBindFramebuffer(GL_FRAMEBUFFER, hdrFBO);
-//    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorBuffer, 0);
-//    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-//    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-//        std::cout << "ERROR::FRAMEBUFFER:: HDR Framebuffer not complete!" << std::endl;
-//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-//    // create and attach depth buffer (renderbuffer)
-//    unsigned int rboDepth;
-//    glGenRenderbuffers(1, &rboDepth);
-//    glBindRenderbuffer(GL_RENDERBUFFER, rboDepth);
-//    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT, SCR_WIDTH, SCR_HEIGHT);
-//    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, rboDepth);
-//    // tell OpenGL which color attachments we'll use (of this framebuffer) for rendering
-//    unsigned int attachments[2] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1 };
-//    glDrawBuffers(2, attachments);
-//    // finally check if framebuffer is complete
-//    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-//        std::cout << "Framebuffer not complete!" << std::endl;
-//    glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-
-
     // Shader configuration
     skyboxShader.use();
     skyboxShader.setInt("skybox", 0);
     ourShader.use();
     ourShader.setInt("material.diffuse", 0);
     ourShader.setInt("material.specular", 1);
-//    hdrShader.use();
-//    hdrShader.setInt("hdrBuffer", 0);
     blurShader.use();
     blurShader.setInt("image", 0);
 
@@ -605,7 +537,6 @@ int main() {
         ourShader.setVec3("viewPosition", programState->camera.Position);
         ourShader.setFloat("material.shininess", 30.0f);
         // view/projection transformations
-        ourShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
         setLights(ourShader, pointLightPositions);
         view = programState->camera.GetViewMatrix();
         ourShader.setMat4("projection", projection);
@@ -713,8 +644,8 @@ void drawTrees(Shader modelShader, Model treeModel){
     // Tree 1
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3((programState->islandPosition.x + 8.0f) * programState->islandScale,
-                                            (programState->islandPosition.x + 1.0f) * programState->islandScale,
-                                            (programState->islandPosition.x + 4.0f) * programState->islandScale));
+                                            (programState->islandPosition.y + 1.0f) * programState->islandScale,
+                                            (programState->islandPosition.z + 4.0f) * programState->islandScale));
     model = glm::scale(model, glm::vec3(programState->islandScale));
     model = glm::rotate(model, 30.0f, glm::vec3(0.0f, 1.0f, 0.0f));
     modelShader.setMat4("model", model);
@@ -722,8 +653,8 @@ void drawTrees(Shader modelShader, Model treeModel){
     treeModel.Draw(modelShader);
     model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3((programState->islandPosition.x + 6.0f) * programState->islandScale,
-                                            (programState->islandPosition.x + 0.5f) * programState->islandScale,
-                                            (programState->islandPosition.x - 3.0f) * programState->islandScale));
+                                            (programState->islandPosition.y + 0.5f) * programState->islandScale,
+                                            (programState->islandPosition.z - 3.0f) * programState->islandScale));
     model = glm::scale(model, glm::vec3(programState->islandScale));
     model = glm::rotate(model, 0.0f, glm::vec3(0.0f, 1.0f, 0.0f));
     modelShader.setMat4("model", model);
@@ -732,8 +663,8 @@ void drawTrees(Shader modelShader, Model treeModel){
     treeModel.Draw(modelShader);
     model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3((programState->islandPosition.x - 1.8f) * programState->islandScale,
-                                            (programState->islandPosition.x + 0.2f) * programState->islandScale,
-                                            (programState->islandPosition.x + 1.0f) * programState->islandScale));
+                                            (programState->islandPosition.y + 0.2f) * programState->islandScale,
+                                            (programState->islandPosition.z + 1.0f) * programState->islandScale));
     model = glm::scale(model, glm::vec3(programState->islandScale));
     model = glm::rotate(model, AI_DEG_TO_RAD(220), glm::vec3(0.0f, 1.0f, 0.0f));
     modelShader.setMat4("model", model);
@@ -743,8 +674,8 @@ void drawTrees(Shader modelShader, Model treeModel){
 void drawSnail(Shader modelShader, Model snailModel){
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::translate(model, glm::vec3((programState->islandPosition.x + 0.4f) * programState->islandScale,
-                                            (programState->islandPosition.x + 0.6f) * programState->islandScale,
-                                            (programState->islandPosition.x + 6.0f) * programState->islandScale)); // translate it down so it's at the center of the scene
+                                            (programState->islandPosition.y + 0.6f) * programState->islandScale,
+                                            (programState->islandPosition.z + 6.0f) * programState->islandScale)); // translate it down so it's at the center of the scene
     model = glm::scale(model, glm::vec3(programState->islandScale / 4));    // it's a bit too big for our scene, so scale it down
     model = glm::rotate(model, AI_DEG_TO_RAD(180), glm::vec3(0.2f, 1.0f, 1.0f));
     modelShader.setMat4("model", model);
@@ -848,14 +779,11 @@ void DrawImGui(ProgramState *programState) {
         static float f = 0.0f;
         ImGui::Begin("Setup window");
         ImGui::Text("Base");
+        ImGui::Checkbox("Light Debug", &programState->lightsDebug);
+        ImGui::Checkbox("Camera Debug", &programState->cameraDebug);
         ImGui::ColorEdit3("Background clear color", (float *) &programState->clearColor);
         ImGui::DragFloat3("Island position", (float*)&programState->islandPosition);
         ImGui::DragFloat("Island scale", &programState->islandScale, 0.05, 0.1, 4.0);
-        ImGui::Text("Lights");
-        ImGui::Checkbox("Blinn-Phong lighting", &programState->blinnLighting);
-        ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.quadratic", &programState->pointLight.quadratic, 0.05, 0.0, 1.0);
         ImGui::Text("HDR");
         ImGui::Checkbox("HDR", &programState->hdr);
         if(programState->hdr){
@@ -875,7 +803,8 @@ void DrawImGui(ProgramState *programState) {
         ImGui::End();
     }
 
-    {
+
+    if(programState->cameraDebug){
         ImGui::Begin("Camera info");
         const Camera& c = programState->camera;
         ImGui::Text("Camera position: (%f, %f, %f)", c.Position.x, c.Position.y, c.Position.z);
@@ -883,6 +812,25 @@ void DrawImGui(ProgramState *programState) {
         ImGui::Text("Camera front: (%f, %f, %f)", c.Front.x, c.Front.y, c.Front.z);
         ImGui::Checkbox("Camera mouse update", &programState->CameraMouseMovementUpdateEnabled);
         ImGui::End();
+    }
+
+    if(programState->lightsDebug){
+        ImGui::Begin("Lights");
+        ImGui::Checkbox("Blinn-Phong lighting", &programState->blinnLighting);
+        ImGui::Text("Directional light");
+        ImGui::DragFloat3("Dir Direction", (float*)&programState->dirLightDirection, 0.05f, -1.0f, 1.0f);
+        ImGui::DragFloat3("Dir Ambient", (float*)&programState->dirLightAmbient, 0.05f, -1.0f, 1.0f);
+        ImGui::DragFloat3("Dir Diffuse", (float*)&programState->dirLightDiffuse, 0.05f, -1.0f, 1.0f);
+        ImGui::DragFloat3("Dir Specular", (float*)&programState->dirLightSpecular, 0.05f, -1.0f, 1.0f);
+        ImGui::Text("Point lights");
+        ImGui::DragFloat3("Point Ambient", (float*)&programState->pointLightAmbient, 0.05f, -1.0f, 1.0f);
+        ImGui::DragFloat3("Point Diffuse", (float*)&programState->pointLightDiffuse, 0.05f, -1.0f, 1.0f);
+        ImGui::DragFloat3("Point Specular", (float*)&programState->pointLightSpecular, 0.05f, -1.0f, 1.0f);
+        ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.05, 0.0, 1.0);
+        ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.05, 0.0, 1.0);
+        ImGui::DragFloat("pointLight.quadratic", &programState->pointLight.quadratic, 0.05, 0.0, 1.0);
+        ImGui::End();
+
     }
 
     ImGui::Render();
@@ -952,47 +900,47 @@ unsigned int loadCubemap(vector<std::string> faces) {
 
 void setLights(Shader lightingShader, glm::vec3 pointLightPositions[]) {
     //directional light
-    lightingShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-    lightingShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
-    lightingShader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
-    lightingShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
+    lightingShader.setVec3("dirLight.direction", programState->dirLightDirection);
+    lightingShader.setVec3("dirLight.ambient", programState->dirLightAmbient);
+    lightingShader.setVec3("dirLight.diffuse", programState->dirLightDiffuse);
+    lightingShader.setVec3("dirLight.specular", programState->dirLightSpecular);
     // point light 1
     lightingShader.setVec3("pointLights[0].position", pointLightPositions[0]);
-    lightingShader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
-    lightingShader.setVec3("pointLights[0].diffuse", 0.94f, 0.98f, 0.78f);
-    lightingShader.setVec3("pointLights[0].specular", 0.94f, 0.98f, 0.78f);
+    lightingShader.setVec3("pointLights[0].ambient", programState->pointLightAmbient);
+    lightingShader.setVec3("pointLights[0].diffuse", programState->pointLightDiffuse);
+    lightingShader.setVec3("pointLights[0].specular", programState->pointLightSpecular);
     lightingShader.setFloat("pointLights[0].constant", programState->pointLight.constant);
     lightingShader.setFloat("pointLights[0].linear", programState->pointLight.linear);
     lightingShader.setFloat("pointLights[0].quadratic", programState->pointLight.quadratic);
     // point light 2
     lightingShader.setVec3("pointLights[1].position", pointLightPositions[1]);
-    lightingShader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
-    lightingShader.setVec3("pointLights[1].diffuse", 0.94f, 0.98f, 0.78f);
-    lightingShader.setVec3("pointLights[1].specular", 0.94f, 0.98f, 0.78f);
+    lightingShader.setVec3("pointLights[1].ambient", programState->pointLightAmbient);
+    lightingShader.setVec3("pointLights[1].diffuse", programState->pointLightDiffuse);
+    lightingShader.setVec3("pointLights[1].specular", programState->pointLightSpecular);
     lightingShader.setFloat("pointLights[1].constant", programState->pointLight.constant);
     lightingShader.setFloat("pointLights[1].linear", programState->pointLight.linear);
     lightingShader.setFloat("pointLights[1].quadratic", programState->pointLight.quadratic);
     // point light 3
     lightingShader.setVec3("pointLights[2].position", pointLightPositions[2]);
-    lightingShader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
-    lightingShader.setVec3("pointLights[2].diffuse", 0.94f, 0.98f, 0.78f);
-    lightingShader.setVec3("pointLights[2].specular", 0.94f, 0.98f, 0.78f);
+    lightingShader.setVec3("pointLights[2].ambient", programState->pointLightAmbient);
+    lightingShader.setVec3("pointLights[2].diffuse", programState->pointLightDiffuse);
+    lightingShader.setVec3("pointLights[2].specular", programState->pointLightSpecular);
     lightingShader.setFloat("pointLights[2].constant", programState->pointLight.constant);
     lightingShader.setFloat("pointLights[2].linear", programState->pointLight.linear);
     lightingShader.setFloat("pointLights[2].quadratic", programState->pointLight.quadratic);
     // point light 4
     lightingShader.setVec3("pointLights[3].position", pointLightPositions[3]);
-    lightingShader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
-    lightingShader.setVec3("pointLights[3].diffuse", 0.94f, 0.98f, 0.78f);
-    lightingShader.setVec3("pointLights[3].specular", 0.94f, 0.98f, 0.78f);
+    lightingShader.setVec3("pointLights[3].ambient", programState->pointLightAmbient);
+    lightingShader.setVec3("pointLights[3].diffuse", programState->pointLightDiffuse);
+    lightingShader.setVec3("pointLights[3].specular", programState->pointLightSpecular);
     lightingShader.setFloat("pointLights[3].constant", programState->pointLight.constant);
     lightingShader.setFloat("pointLights[3].linear", programState->pointLight.linear);
     lightingShader.setFloat("pointLights[3].quadratic", programState->pointLight.quadratic);
     // point light 5
     lightingShader.setVec3("pointLights[4].position", pointLightPositions[4]);
-    lightingShader.setVec3("pointLights[4].ambient", 0.05f, 0.05f, 0.05f);
-    lightingShader.setVec3("pointLights[4].diffuse", 0.94f, 0.98f, 0.78f);
-    lightingShader.setVec3("pointLights[4].specular", 0.94f, 0.98f, 0.78f);
+    lightingShader.setVec3("pointLights[4].ambient", programState->pointLightAmbient);
+    lightingShader.setVec3("pointLights[4].diffuse", programState->pointLightDiffuse);
+    lightingShader.setVec3("pointLights[4].specular", programState->pointLightSpecular);
     lightingShader.setFloat("pointLights[4].constant", programState->pointLight.constant);
     lightingShader.setFloat("pointLights[4].linear", programState->pointLight.linear);
     lightingShader.setFloat("pointLights[4].quadratic", programState->pointLight.quadratic);
