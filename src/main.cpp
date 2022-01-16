@@ -239,7 +239,6 @@ int main() {
     Shader skyboxShader("resources/shaders/skyboxShader.vs", "resources/shaders/skyboxShader.fs");
     Shader instanceShader("resources/shaders/instanceShader.vs", "resources/shaders/instanceShader.fs");
     Shader blurShader("resources/shaders/blur.vs", "resources/shaders/blur.fs");
-    //    ourShader.setInt("numPointLights", 4);
 
     // load models
     // -----------
@@ -331,8 +330,8 @@ int main() {
         else
             model = glm::translate(model, glm::vec3(rand() % 100 - 50, -4 - rand() % 10, rand() % 100 - 50));
 
-        // 2. scale: Scale between 0.05 and 0.25f
-        float scale = (rand() % 20) / 100.0f + 0.05;
+        // 2. scale: Scale between 0.1f and 0.3f
+        float scale = (rand() % 20) / 100.0f + 0.1f;
         model = glm::scale(model, glm::vec3(scale));
         // 3. rotation: add random rotation around a (semi)randomly picked rotation axis vector
         float rotAngle = (rand() % 60);
