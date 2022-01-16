@@ -1,7 +1,8 @@
 # MATF-RG - Snail Island
 ______________________
 Projekat iz Računarske grafike, korišćen skelet sa `https://github.com/matf-racunarska-grafika/project_base.git`. <br>
-Rađeno uz pomoć materijala sa [LearnOpenGL.com](https://learnopengl.com/)
+Rađeno uz pomoć materijala sa [LearnOpenGL.com](https://learnopengl.com/) <br>
+[Demo video](https://youtu.be/5bUXxQhg7Kw)
 
 ## Uputstvo pre izvršavanja
 1. `git clone https://github.com/lkora/MATF-RG.git`
