@@ -861,7 +861,7 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
     }
     if (glfwGetKey(window, GLFW_KEY_C) == GLFW_PRESS){
         programState->CameraMouseMovementUpdateEnabled = !programState->CameraMouseMovementUpdateEnabled;
-        std::cout << "Camera lock - " << (programState->CameraMouseMovementUpdateEnabled ? "Disabled" : "Enabled");
+        std::cout << "Camera lock - " << (programState->CameraMouseMovementUpdateEnabled ? "Disabled" : "Enabled") << '\n';
     }
 }
 
